@@ -126,7 +126,7 @@ const QuizResult = () => {
 
     // Calculate percentage based on the data provided by the API first
     let percentage = 0;
-    if (typeof data?.percentage === 'number' && data.percentage >= 0) {
+    if (typeof data?.percentage === 'number') {
         percentage = Math.round(data.percentage);
     } else {
         percentage = Math.round((score / effectiveTotalMarks) * 100);
@@ -246,30 +246,9 @@ const QuizResult = () => {
                     </Box>
 
                     <Typography variant="overline" sx={{ color: '#94a3b8', fontWeight: 800, mb: 2, display: 'block' }}>PERFORMANCE ANALYTICS</Typography>
-                    <Grid container spacing={2} sx={{ mb: 6 }}>
-                        <Grid item xs={4}>
-                            <Box sx={{ p: 2, border: '2px solid #e2e8f0', textAlign: 'center' }}>
-                                <Typography variant="h5" sx={{ fontWeight: 900, color: '#1e293b' }}>{score} / {totalMarks}</Typography>
-                                <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b' }}>TOTAL SCORE</Typography>
-                            </Box>
-                        </Grid>
-                        <Grid item xs={4}>
-                            <Box sx={{ p: 2, border: '2px solid #e2e8f0', textAlign: 'center' }}>
-                                <Typography variant="h5" sx={{ fontWeight: 900, color: '#6366f1' }}>{percentage}%</Typography>
-                                <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b' }}>ACCURACY</Typography>
-                            </Box>
-                        </Grid>
-                        <Grid item xs={4}>
-                            <Box sx={{ p: 2, border: '2px solid #e2e8f0', textAlign: 'center' }}>
-                                <Typography variant="h5" sx={{ fontWeight: 900, color: isPass ? '#10b981' : '#f43f5e' }}>{totalMarks === 0 ? (isPass ? "PASS" : "FAIL") : (data?.passStatus || data?.status || (isPass ? "PASS" : "FAIL"))}</Typography>
-                                <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b' }}>STATUS</Typography>
-                            </Box>
-                        </Grid>
-                    </Grid>
-
                     <Box sx={{ px: 2, mb: 8 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b' }}>MASTERY SCALE</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b' }}>PROGRESS</Typography>
                             <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b' }}>{percentage}%</Typography>
                         </Box>
                         <LinearProgress

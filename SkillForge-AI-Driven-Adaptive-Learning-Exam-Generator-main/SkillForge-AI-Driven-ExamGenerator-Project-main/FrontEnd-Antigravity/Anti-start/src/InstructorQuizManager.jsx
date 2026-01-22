@@ -160,7 +160,7 @@ const InstructorQuizManager = () => {
             console.log("📤 Calling aiService.generateQuestions with:", requestParams);
 
             setMessage({ type: 'info', text: 'AI is generating questions... Please wait.' });
-            
+
             const genQuestions = await aiService.generateQuestions(requestParams);
 
             console.log("✅ AI Service returned questions:", genQuestions);
@@ -171,35 +171,28 @@ const InstructorQuizManager = () => {
             }
 
             // Check if we got real AI questions or samples
-            const hasRealQuestions = genQuestions.some(q => 
+            const hasRealQuestions = genQuestions.some(q =>
                 q.question && !q.question.toLowerCase().includes('sample')
             );
-            
+
             if (!hasRealQuestions) {
-                setMessage({ 
-                    type: 'warning', 
-                    text: 'AI service returned sample questions. Check your API key and internet connection.' 
+                setMessage({
+                    type: 'warning',
+                    text: 'AI service returned sample questions. Check your API key and internet connection.'
                 });
             } else {
-                setMessage({ 
-                    type: 'success', 
-                    text: `🎉 AI successfully generated ${genQuestions.length} real questions! Review and edit them below.` 
+                setMessage({
+                    type: 'success',
+                    text: `🎉 AI successfully generated ${genQuestions.length} real questions! Review and edit them below.`
                 });
             }
 
-            // Assign unique IDs to AI questions
-            const questionsWithIds = genQuestions.map((q, idx) => ({
-                ...q,
-                questionId: q.questionId || (idx + 1).toString()
-            }));
-
-            console.log("🔧 Questions after ID assignment:", questionsWithIds);
-
-            setQuestions(questionsWithIds);
+            console.log("🔧 Setting questions directly from AI service");
+            setQuestions(genQuestions);
             console.log("💾 Questions state updated");
 
             // Sync quizData with AI params & Compute Type
-            const computedType = computeQuizType(questionsWithIds);
+            const computedType = computeQuizType(genQuestions);
             const updatedQuizData = {
                 ...quizData,
                 difficulty: aiParams.difficulty,
@@ -210,7 +203,7 @@ const InstructorQuizManager = () => {
             console.log("💾 Quiz data synced with AI params:", updatedQuizData);
 
             console.log("✅ ========== AI GENERATION COMPLETED ==========\n");
-            
+
         } catch (err) {
             console.error("❌ ========== AI GENERATION FAILED ==========");
             console.error("Error object:", err);
@@ -220,7 +213,7 @@ const InstructorQuizManager = () => {
 
             // Show specific error message
             let errorMessage = 'Failed to generate questions. ';
-            
+
             if (err.message.includes('AI generation failed')) {
                 errorMessage += 'Please check your internet connection and API key configuration.';
             } else if (err.message.includes('No questions were generated')) {
@@ -228,7 +221,7 @@ const InstructorQuizManager = () => {
             } else {
                 errorMessage += err.message || 'Unknown error occurred.';
             }
-            
+
             setMessage({ type: 'error', text: errorMessage });
             console.log("❌ ========== AI GENERATION ERROR END ==========\n");
         } finally {
@@ -683,8 +676,8 @@ const InstructorQuizManager = () => {
                                                 value={aiParams.questionType || 'MCQ'}
                                                 onChange={(e) => {
                                                     const type = e.target.value;
-                                                    setAiParams({ 
-                                                        ...aiParams, 
+                                                    setAiParams({
+                                                        ...aiParams,
                                                         questionType: type,
                                                         numQuestions: type === 'MIXED' ? aiParams.numMcq + aiParams.numLong : aiParams.numQuestions
                                                     });
@@ -696,7 +689,7 @@ const InstructorQuizManager = () => {
                                                 <MenuItem value="MIXED">Mixed (MCQ + Long)</MenuItem>
                                             </TextField>
                                         </Grid>
-                                        
+
                                         {aiParams.questionType === 'MIXED' ? (
                                             <>
                                                 <Grid item xs={12} md={3}>
@@ -705,8 +698,8 @@ const InstructorQuizManager = () => {
                                                         value={aiParams.numMcq}
                                                         onChange={(e) => {
                                                             const mcq = Number(e.target.value);
-                                                            setAiParams({ 
-                                                                ...aiParams, 
+                                                            setAiParams({
+                                                                ...aiParams,
                                                                 numMcq: mcq,
                                                                 numQuestions: mcq + aiParams.numLong
                                                             });
@@ -720,8 +713,8 @@ const InstructorQuizManager = () => {
                                                         value={aiParams.numLong}
                                                         onChange={(e) => {
                                                             const long = Number(e.target.value);
-                                                            setAiParams({ 
-                                                                ...aiParams, 
+                                                            setAiParams({
+                                                                ...aiParams,
                                                                 numLong: long,
                                                                 numQuestions: aiParams.numMcq + long
                                                             });
@@ -777,9 +770,9 @@ const InstructorQuizManager = () => {
                                                     try {
                                                         const response = await fetch('http://localhost:8081/api/test/gemini');
                                                         const result = await response.json();
-                                                        setMessage({ 
-                                                            type: result.status === 'SUCCESS' ? 'success' : 'error', 
-                                                            text: result.message 
+                                                        setMessage({
+                                                            type: result.status === 'SUCCESS' ? 'success' : 'error',
+                                                            text: result.message
                                                         });
                                                     } catch (err) {
                                                         setMessage({ type: 'error', text: 'Failed to test API connection' });
@@ -795,14 +788,31 @@ const InstructorQuizManager = () => {
                             )}
 
                             {/* ALWAYS SHOW QUESTIONS IF THEY EXIST (AI or MANUAL) */}
-                            {(questions.length > 0 && (mode === 'MANUAL' || questions.some(q => q.questionText))) && (
+                            {questions.length > 0 && questions.some(q => q.questionText && q.questionText.trim()) && (
                                 <Box>
                                     <Divider sx={{ my: 4 }}>
                                         <Chip label="REVIEW & EDIT QUESTIONS" sx={{ fontWeight: 800, bgcolor: '#f1f5f9' }} />
                                     </Divider>
                                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                                        <Typography variant="h6" sx={{ fontWeight: 800 }}>3. Questions List</Typography>
-                                        <Button startIcon={<AddIcon />} variant="outlined" onClick={handleAddQuestion}>Add Question</Button>
+                                        <Typography variant="h6" sx={{ fontWeight: 800 }}>3. Questions List ({questions.length} questions)</Typography>
+                                        <Box display="flex" gap={1}>
+                                            <Button startIcon={<AddIcon />} variant="outlined" onClick={handleAddQuestion} size="small">
+                                                Add Question
+                                            </Button>
+                                            <Button
+                                                startIcon={<DeleteIcon />}
+                                                variant="outlined"
+                                                color="error"
+                                                onClick={() => {
+                                                    if (window.confirm('Clear all questions?')) {
+                                                        setQuestions([{ questionId: '1', questionText: '', type: 'MCQ', options: ['', '', '', ''], correctAnswer: 'A' }]);
+                                                    }
+                                                }}
+                                                size="small"
+                                            >
+                                                Clear All
+                                            </Button>
+                                        </Box>
                                     </Box>
                                     <Stack spacing={3}>
                                         {questions.map((q, idx) => (

@@ -383,6 +383,7 @@ public class AIQuizGeneratorService {
         System.out.println("🚀 Starting AI generation for: " + quiz.getTitle());
         System.out.println("📋 Type: " + type + ", Count: " + numQuestions + ", Difficulty: " + difficulty);
         System.out.println("🔑 API Key present: " + (geminiApiKey != null && !geminiApiKey.isEmpty()));
+        System.out.println("🌐 API URL: " + geminiApiUrl);
 
         // Generate enhanced prompt based on type and difficulty
         if ("MCQ".equalsIgnoreCase(type)) {
@@ -418,7 +419,7 @@ public class AIQuizGeneratorService {
 
         String url = geminiApiUrl + "?key=" + geminiApiKey;
 
-        System.out.println("🌐 API URL: " + url.replace(geminiApiKey, "***"));
+        System.out.println("🌐 Full API URL: " + url.replace(geminiApiKey, "***"));
 
         Map<String, Object> body = new HashMap<>();
         body.put("contents", List.of(
@@ -534,23 +535,30 @@ public class AIQuizGeneratorService {
     private List<QuizQuestion> generateFallbackQuestions(Quiz quiz, String type, int numQuestions) {
         List<QuizQuestion> fallbackQuestions = new ArrayList<>();
         
+        System.out.println("🔄 Generating fallback questions for: " + quiz.getTitle());
+        
         for (int i = 1; i <= numQuestions; i++) {
             QuizQuestion q = new QuizQuestion();
-            q.setQuestion("Sample " + type + " question " + i + " about " + quiz.getTitle());
-            q.setType(type);
-            q.setQuiz(quiz);
             
             if ("MCQ".equalsIgnoreCase(type)) {
-                q.setOptionA("Option A");
-                q.setOptionB("Option B");
-                q.setOptionC("Option C");
-                q.setOptionD("Option D");
+                q.setQuestion("Question " + i + ": What is a key concept in " + quiz.getTitle() + "?");
+                q.setOptionA("Basic concept A");
+                q.setOptionB("Advanced concept B");
+                q.setOptionC("Complex concept C");
+                q.setOptionD("Expert concept D");
                 q.setCorrectAnswer("A");
+            } else if ("LONG".equalsIgnoreCase(type)) {
+                q.setQuestion("Question " + i + ": Explain the importance and applications of " + quiz.getTitle() + " in detail.");
+            } else {
+                q.setQuestion("Question " + i + ": Define a key term related to " + quiz.getTitle() + ".");
             }
             
+            q.setType(type);
+            q.setQuiz(quiz);
             fallbackQuestions.add(q);
         }
         
+        System.out.println("✅ Generated " + fallbackQuestions.size() + " fallback questions");
         return fallbackQuestions;
     }
 

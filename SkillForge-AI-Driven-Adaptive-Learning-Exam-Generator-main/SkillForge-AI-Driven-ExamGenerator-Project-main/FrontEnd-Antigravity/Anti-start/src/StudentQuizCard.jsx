@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Card,
     CardContent,
@@ -14,13 +14,39 @@ import {
     Visibility as ViewIcon,
     Lock as LockIcon,
     CheckCircle as DoneIcon,
-    Pending as PendingIcon
+    Pending as PendingIcon,
+    EmojiEvents as TrophyIcon
 } from '@mui/icons-material';
+import { getQuickResultByQuiz } from './services/quizResultService';
 
 const StudentQuizCard = ({ quiz, onAttempt, onViewResult, onRetake }) => {
     const { title, topic, difficulty, status, score, total_marks, totalMarks, percentage } = quiz;
-    const displayTotalMarks = total_marks || totalMarks || 100;
-    const displayPercentage = typeof percentage === 'number' ? percentage : Math.round((score / displayTotalMarks) * 100);
+    const [actualResult, setActualResult] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    // Fetch actual result data for completed quizzes
+    useEffect(() => {
+        const fetchActualResult = async () => {
+            if ((status === 'ATTEMPTED' || status === 'COMPLETED') && quiz.quiz_id) {
+                setLoading(true);
+                try {
+                    const result = await getQuickResultByQuiz(quiz.quiz_id);
+                    setActualResult(result);
+                } catch (error) {
+                    console.error('Failed to fetch actual result:', error);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+        fetchActualResult();
+    }, [status, quiz.quiz_id]);
+
+    // Use actual result data if available, otherwise fallback to quiz data
+    const displayTotalMarks = actualResult?.totalMarks || total_marks || totalMarks || 100;
+    const displayScore = actualResult?.totalScore || actualResult?.score || score || 0;
+    const displayPercentage = actualResult?.percentage !== undefined ? actualResult.percentage : 
+        (typeof percentage === 'number' ? percentage : Math.round((displayScore / displayTotalMarks) * 100));
 
     const getStatusConfig = () => {
         switch (status) {
@@ -32,7 +58,7 @@ const StudentQuizCard = ({ quiz, onAttempt, onViewResult, onRetake }) => {
                 else if (perc < 80) c = '#f59e0b'; // orange
 
                 return {
-                    label: status === 'COMPLETED' ? 'Completed' : `Score: ${score}/${displayTotalMarks}`,
+                    label: status === 'COMPLETED' ? 'Completed' : `Score: ${displayScore}/${displayTotalMarks}`,
                     color: c,
                     bgColor: `${c}15`,
                     icon: <DoneIcon sx={{ fontSize: 16 }} />,
@@ -141,7 +167,7 @@ const StudentQuizCard = ({ quiz, onAttempt, onViewResult, onRetake }) => {
                         </Box>
                         <LinearProgress
                             variant="determinate"
-                            value={displayPercentage}
+                            value={loading ? 0 : displayPercentage}
                             sx={{
                                 height: 6,
                                 borderRadius: 3,
@@ -151,6 +177,11 @@ const StudentQuizCard = ({ quiz, onAttempt, onViewResult, onRetake }) => {
                                 }
                             }}
                         />
+                        {actualResult && (
+                            <Typography variant="caption" sx={{ color: '#64748b', mt: 0.5, display: 'block' }}>
+                                Actual Score: {displayScore}/{displayTotalMarks}
+                            </Typography>
+                        )}
                     </Box>
                 )}
             </CardContent>
@@ -236,6 +267,24 @@ const StudentQuizCard = ({ quiz, onAttempt, onViewResult, onRetake }) => {
                                 Download Full Summary
                             </Button>
                         </>
+                    ) : status === 'PENDING_MANUAL' ? (
+                        <Button
+                            fullWidth
+                            variant="outlined"
+                            startIcon={<PendingIcon />}
+                            onClick={onViewResult}
+                            sx={{
+                                borderRadius: '12px',
+                                py: 1,
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                color: '#f59e0b',
+                                borderColor: '#f59e0b',
+                                '&:hover': { borderColor: '#d97706', bgcolor: 'rgba(245, 158, 11, 0.05)' }
+                            }}
+                        >
+                            View Submission
+                        </Button>
                     ) : (
                         <Button
                             fullWidth

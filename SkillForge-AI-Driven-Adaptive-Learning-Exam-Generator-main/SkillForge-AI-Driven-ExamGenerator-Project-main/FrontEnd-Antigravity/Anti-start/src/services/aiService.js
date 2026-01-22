@@ -57,23 +57,22 @@ export const aiService = {
                 if (questionType === 'MCQ') {
                     return {
                         questionId: q.questionId || (index + 1).toString(),
-                        question: q.question || q.questionText || '',
+                        questionText: q.question || q.questionText || '',
                         type: 'MCQ',
-                        optionA: q.optionA || '',
-                        optionB: q.optionB || '',
-                        optionC: q.optionC || '',
-                        optionD: q.optionD || '',
+                        options: [
+                            q.optionA || '',
+                            q.optionB || '',
+                            q.optionC || '',
+                            q.optionD || ''
+                        ],
                         correctAnswer: q.correctAnswer || 'A'
                     };
                 } else {
                     return {
                         questionId: q.questionId || (index + 1).toString(),
-                        question: q.question || q.questionText || '',
+                        questionText: q.question || q.questionText || '',
                         type: questionType,
-                        optionA: null,
-                        optionB: null,
-                        optionC: null,
-                        optionD: null,
+                        options: ['', '', '', ''],
                         correctAnswer: q.correctAnswer || ''
                     };
                 }
@@ -87,7 +86,7 @@ export const aiService = {
 
             // Check if we got real AI questions or fallback samples
             const hasRealQuestions = transformedQuestions.some(q =>
-                q.question && !q.question.toLowerCase().includes('sample')
+                q.questionText && !q.questionText.toLowerCase().includes('sample')
             );
 
             if (!hasRealQuestions) {

@@ -1,0 +1,9 @@
+    const toggleMaterials = (topicId) => {
+        setExpandedTopics(prev => {
+            const isExpanding = !prev[topicId];
+            if (isExpanding) {
+                loadMaterials(topicId);
+            }
+            return { ...prev, [topicId]: isExpanding };
+        });
+    };

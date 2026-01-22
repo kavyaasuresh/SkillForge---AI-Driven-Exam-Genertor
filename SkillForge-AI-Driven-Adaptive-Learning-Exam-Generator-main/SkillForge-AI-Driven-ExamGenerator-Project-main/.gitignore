@@ -1,0 +1,11 @@
+
+FrontEnd/**/node_modules/
+FrontEnd/**/build/
+FrontEnd/**/dist/
+FrontEnd/**/.env
+
+BackEnd/**/target/
+BackEnd/**/.classpath
+BackEnd/**/.project
+BackEnd/**/.settings/
+BackEnd/**/.env

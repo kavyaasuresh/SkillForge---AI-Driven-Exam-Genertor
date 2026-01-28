@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -24,8 +24,13 @@ import { useNavigate } from 'react-router-dom';
 
 const StudentDashboard = () => {
     const { user } = useAuth();
-    const { studentData } = useStudent();
+    const { studentData, refreshStudentData } = useStudent();
     const navigate = useNavigate();
+
+    // Refresh data when component mounts
+    useEffect(() => {
+        refreshStudentData();
+    }, []);
 
     const stats = [
         { label: 'Enrolled Courses', value: studentData.enrolledCourses.length, icon: <SchoolIcon />, color: '#6366f1' },

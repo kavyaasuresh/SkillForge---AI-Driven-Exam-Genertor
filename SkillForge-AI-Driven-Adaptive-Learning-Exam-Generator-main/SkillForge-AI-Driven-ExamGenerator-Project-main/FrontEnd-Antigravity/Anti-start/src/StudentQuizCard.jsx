@@ -17,7 +17,7 @@ import {
     Pending as PendingIcon,
     EmojiEvents as TrophyIcon
 } from '@mui/icons-material';
-import { getQuickResultByQuiz } from './services/quizResultService';
+import { getFullSummaryByQuiz } from './services/quizResultService';
 
 const StudentQuizCard = ({ quiz, onAttempt, onViewResult, onRetake }) => {
     const { title, topic, difficulty, status, score, total_marks, totalMarks, percentage } = quiz;
@@ -30,10 +30,11 @@ const StudentQuizCard = ({ quiz, onAttempt, onViewResult, onRetake }) => {
             if ((status === 'ATTEMPTED' || status === 'COMPLETED') && quiz.quiz_id) {
                 setLoading(true);
                 try {
-                    const result = await getQuickResultByQuiz(quiz.quiz_id);
+                    // Use Full Summary for 100% data parity with transcript
+                    const result = await getFullSummaryByQuiz(quiz.quiz_id);
                     setActualResult(result);
                 } catch (error) {
-                    console.error('Failed to fetch actual result:', error);
+                    console.error('Failed to fetch official summary:', error);
                 } finally {
                     setLoading(false);
                 }
@@ -43,10 +44,23 @@ const StudentQuizCard = ({ quiz, onAttempt, onViewResult, onRetake }) => {
     }, [status, quiz.quiz_id]);
 
     // Use actual result data if available, otherwise fallback to quiz data
-    const displayTotalMarks = actualResult?.totalMarks || total_marks || totalMarks || 100;
+    const displayTotalMarks = actualResult?.totalMarks || actualResult?.maxMarks || actualResult?.totalQuestions || total_marks || totalMarks || 0;
     const displayScore = actualResult?.totalScore || actualResult?.score || score || 0;
-    const displayPercentage = actualResult?.percentage !== undefined ? actualResult.percentage : 
-        (typeof percentage === 'number' ? percentage : Math.round((displayScore / displayTotalMarks) * 100));
+
+    // Standardized Percentage Calculation matching QuizResult.jsx
+    let displayPercentage = 0;
+    if (actualResult?.percentage !== undefined) {
+        displayPercentage = Math.round(actualResult.percentage);
+    } else {
+        // Fallback calculation
+        let tm = displayTotalMarks;
+        if (tm === 0 && actualResult?.questions?.length > 0) {
+            tm = actualResult.questions.reduce((sum, q) => sum + (q.maxMarks || 0), 0);
+        }
+        const effectiveTM = tm > 0 ? tm : 100;
+        displayPercentage = Math.round((displayScore / effectiveTM) * 100);
+    }
+    displayPercentage = Math.max(0, Math.min(100, displayPercentage));
 
     const getStatusConfig = () => {
         switch (status) {

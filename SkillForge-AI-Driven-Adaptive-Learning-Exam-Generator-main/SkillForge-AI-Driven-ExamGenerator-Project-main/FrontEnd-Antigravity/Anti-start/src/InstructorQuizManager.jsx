@@ -787,11 +787,11 @@ const InstructorQuizManager = () => {
                                 </Paper>
                             )}
 
-                            {/* ALWAYS SHOW QUESTIONS IF THEY EXIST (AI or MANUAL) */}
-                            {questions.length > 0 && questions.some(q => q.questionText && q.questionText.trim()) && (
+                            {/* ALWAYS SHOW QUESTIONS IF IN MANUAL MODE OR IF AI GENERATED THEM */}
+                            {(mode === 'MANUAL' || (questions.length > 0 && questions.some(q => q.questionText && q.questionText.trim()))) && (
                                 <Box>
                                     <Divider sx={{ my: 4 }}>
-                                        <Chip label="REVIEW & EDIT QUESTIONS" sx={{ fontWeight: 800, bgcolor: '#f1f5f9' }} />
+                                        <Chip label={mode === 'AI' ? "AI GENERATED QUESTIONS" : "CRAFT YOUR QUESTIONS"} sx={{ fontWeight: 800, bgcolor: '#f1f5f9' }} />
                                     </Divider>
                                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                                         <Typography variant="h6" sx={{ fontWeight: 800 }}>3. Questions List ({questions.length} questions)</Typography>
@@ -853,7 +853,11 @@ const InstructorQuizManager = () => {
                                                     </Grid>
                                                     <Grid item xs={12} md={6}>
                                                         <TextField
-                                                            fullWidth label="Question Text"
+                                                            fullWidth
+                                                            label="Question Text"
+                                                            placeholder={q.type === 'MCQ' ? "e.g. What is the capital of France?" : "e.g. Describe the process of photosynthesis in detail."}
+                                                            multiline
+                                                            rows={2}
                                                             value={q.questionText}
                                                             onChange={(e) => handleQuestionTextChange(idx, e.target.value)}
                                                         />
@@ -866,7 +870,9 @@ const InstructorQuizManager = () => {
                                                             {['A', 'B', 'C', 'D'].map((opt, oIdx) => (
                                                                 <Grid item xs={12} md={6} key={opt}>
                                                                     <TextField
-                                                                        fullWidth size="small" label={`Option ${opt}`}
+                                                                        fullWidth size="small"
+                                                                        label={`Option ${opt}`}
+                                                                        placeholder={`Enter option ${opt}...`}
                                                                         value={q.options[oIdx]}
                                                                         onChange={(e) => handleOptionChange(idx, oIdx, e.target.value)}
                                                                         InputProps={{

@@ -57,10 +57,26 @@ export const StudentProvider = ({ children }) => {
                 personalizedQuizzes = [];
             }
 
-            const completed = personalizedQuizzes.filter(q => q.status === 'ATTEMPTED');
+            const completed = personalizedQuizzes.filter(q => {
+                console.log('Quiz status check:', q.status, q);
+                return q.status === 'ATTEMPTED' || q.status === 'COMPLETED' || q.status === 'SUBMITTED';
+            });
+            
+            console.log('All quizzes:', personalizedQuizzes);
+            console.log('Completed quizzes:', completed);
+            
             const avgScore = completed.length > 0
-                ? Math.round(completed.reduce((acc, curr) => acc + (curr.score || 0), 0) / completed.length)
+                ? Math.round(completed.reduce((acc, curr) => {
+                    const score = curr.score || curr.percentage || curr.marks || 0;
+                    console.log('Quiz score:', score, curr);
+                    return acc + score;
+                }, 0) / completed.length)
                 : 0;
+
+            console.log('Calculated stats:', {
+                completedQuizzes: completed.length,
+                averageScore: avgScore
+            });
 
             setStudentData({
                 enrolledCourses: normalizedCourses,

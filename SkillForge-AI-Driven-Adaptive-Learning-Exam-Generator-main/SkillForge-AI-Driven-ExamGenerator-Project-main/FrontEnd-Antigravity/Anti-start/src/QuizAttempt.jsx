@@ -27,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { quizService } from './services/quizService';
+import { getFullSummaryByQuiz } from './services/quizResultService';
 import { useStudent } from './context/StudentContext';
 import { useAuth } from './context/AuthContext';
 
@@ -97,11 +98,41 @@ const QuizAttempt = () => {
 
                 // If it's a result view or the quiz is already attempted, we might want to show results directly
                 if (quizDetails?.status === 'ATTEMPTED' || quizDetails?.status === 'COMPLETED' || isResultView) {
-                    setResult({
-                        score: quizDetails?.score || 0,
-                        totalMarks: quizDetails?.totalMarks || 100,
-                        percentage: Math.round(((quizDetails?.score || 0) / (quizDetails?.totalMarks || 100)) * 100)
-                    });
+                    try {
+                        const officialSummary = await getFullSummaryByQuiz(quizId);
+                        const s = officialSummary.totalScore ?? officialSummary.score ?? 0;
+                        let tm = officialSummary.totalMarks ?? officialSummary.maxMarks ?? officialSummary.totalQuestions ?? 0;
+
+                        if (tm === 0 && officialSummary.questions?.length > 0) {
+                            tm = officialSummary.questions.reduce((sum, q) => sum + (q.maxMarks || 0), 0);
+                        }
+
+                        const effectiveTM = tm > 0 ? tm : 100;
+                        let p = 0;
+                        if (typeof officialSummary.percentage === 'number') {
+                            p = Math.round(officialSummary.percentage);
+                        } else {
+                            p = Math.round((s / effectiveTM) * 100);
+                        }
+
+                        setResult({
+                            score: s,
+                            totalMarks: effectiveTM,
+                            percentage: Math.max(0, Math.min(100, p)),
+                            isPass: officialSummary.passStatus?.toLowerCase() === "pass" || (p >= 50),
+                            fromServer: true
+                        });
+                    } catch (error) {
+                        console.error("Failed to load official result for existing attempt:", error);
+                        // Fallback to naive but safer calculation
+                        const s = quizDetails?.score || 0;
+                        const tm = quizDetails?.totalMarks || 100;
+                        setResult({
+                            score: s,
+                            totalMarks: tm,
+                            percentage: Math.round((s / tm) * 100)
+                        });
+                    }
                 }
 
                 if (qData && qData.length > 0) {
@@ -228,11 +259,31 @@ const QuizAttempt = () => {
             const response = await quizService.submitQuizAttempt(finalQuizId, answers);
             console.log("[SUBMIT_DEBUG] Submission response received:", response);
 
-            // 2. Use response directly for simple result view
+            // 2. Fetch the official FULL SUMMARY from the result service for 100% parity
+            const officialSummary = await getFullSummaryByQuiz(finalQuizId);
+            console.log("[SUBMIT_DEBUG] Official Summary received:", officialSummary);
+
+            const s = officialSummary.totalScore ?? officialSummary.score ?? 0;
+            let tm = officialSummary.totalMarks ?? officialSummary.maxMarks ?? officialSummary.totalQuestions ?? 0;
+
+            // Fallback: If totalMarks is missing but we have question data, sum up max marks
+            if (tm === 0 && officialSummary.questions?.length > 0) {
+                tm = officialSummary.questions.reduce((sum, q) => sum + (q.maxMarks || 0), 0);
+            }
+
+            const effectiveTM = tm > 0 ? tm : 100;
+            let p = 0;
+            if (typeof officialSummary.percentage === 'number') {
+                p = Math.round(officialSummary.percentage);
+            } else {
+                p = Math.round((s / effectiveTM) * 100);
+            }
+
             setResult({
-                score: response.score || 0,
-                totalMarks: response.totalMarks || 100,
-                percentage: response.percentage || (response.totalMarks > 0 ? Math.round((response.score / response.totalMarks) * 100) : 0),
+                score: s,
+                totalMarks: effectiveTM,
+                percentage: Math.max(0, Math.min(100, p)),
+                isPass: officialSummary.passStatus?.toLowerCase() === "pass" || (p >= 50),
                 fromServer: true
             });
 
@@ -371,26 +422,38 @@ const QuizAttempt = () => {
 
                         <TrophyIcon sx={{ fontSize: 80, color: '#fbbf24', mb: 2 }} />
                         <Typography variant="h3" sx={{ fontWeight: 900, mb: 1, letterSpacing: '-0.02em' }}>Quiz Complete!</Typography>
-                        <Typography variant="body1" color="textSecondary" sx={{ mb: 4 }}>Your score has been securely calculated by the server.</Typography>
+                        <Typography variant="body1" color="textSecondary" sx={{ mb: 6 }}>Your score has been securely calculated by the server.</Typography>
 
-                        <Box sx={{ display: 'flex', justifyContent: 'center', gap: { xs: 4, md: 8 }, my: 5 }}>
-                            <Box>
-                                <Typography variant="h2" sx={{ fontWeight: 900, color: '#1e293b' }}>{result.score}</Typography>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#64748b', letterSpacing: '0.1em' }}>TOTAL SCORE</Typography>
-                            </Box>
-                            <Box sx={{ width: '2px', height: '60px', bgcolor: '#e2e8f0' }} />
-                            <Box>
-                                <Typography variant="h2" sx={{ fontWeight: 900, color: '#6366f1' }}>{result.percentage}%</Typography>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#64748b', letterSpacing: '0.1em' }}>ACCURACY</Typography>
-                            </Box>
-                        </Box>
+                        <Box sx={{ maxWidth: 500, mx: 'auto', width: '100%', mb: 8, px: 2 }}>
+                            <Typography variant="overline" sx={{ color: '#94a3b8', fontWeight: 800, mb: 2, display: 'block', textAlign: 'left' }}>PERFORMANCE ANALYTICS</Typography>
 
-                        <Box sx={{ px: 4 }}>
+                            <Box sx={{ mb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#64748b', letterSpacing: '0.05em' }}>PROGRESS</Typography>
+                                <Typography variant="h5" sx={{ fontWeight: 900, color: '#1e293b' }}>{result.percentage}%</Typography>
+                            </Box>
+
                             <LinearProgress
                                 variant="determinate"
                                 value={result.percentage}
-                                sx={{ height: 12, borderRadius: 6, bgcolor: '#f1f5f9', '& .MuiLinearProgress-bar': { borderRadius: 6, bgcolor: result.percentage >= 50 ? '#10b981' : '#f43f5e' } }}
+                                sx={{
+                                    height: 12,
+                                    borderRadius: 6,
+                                    bgcolor: '#f1f5f9',
+                                    mb: 2,
+                                    '& .MuiLinearProgress-bar': {
+                                        bgcolor: result.isPass ? '#10b981' : '#f43f5e'
+                                    }
+                                }}
                             />
+
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                                <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
+                                    Official Score: <Box component="span" sx={{ color: '#1e293b', fontWeight: 900 }}>{result.score} / {result.totalMarks}</Box>
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: result.isPass ? '#10b981' : '#f43f5e', fontWeight: 900, textTransform: 'uppercase' }}>
+                                    Result: {result.isPass ? 'Validated' : 'Requires Review'}
+                                </Typography>
+                            </Box>
                         </Box>
 
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 6, justifyContent: 'center' }}>
